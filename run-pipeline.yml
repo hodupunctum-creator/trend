@@ -1,0 +1,49 @@
+name: Run Pipeline
+
+on:
+  repository_dispatch:
+    types: [run-pipeline]
+  workflow_dispatch: {}  # 수동 테스트용
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Collect YouTube data
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: python scripts/collect_youtube.py
+
+      - name: Collect Instagram data (best-effort)
+        run: python scripts/collect_instagram.py
+        continue-on-error: true  # 인스타 실패해도 유튜브 리포트는 발송되도록
+
+      - name: Curate top content
+        run: python scripts/curate.py
+
+      - name: Generate report
+        run: python scripts/generate_report.py
+
+      - name: Send report email
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        run: python scripts/send_email.py --mode report
+
+      - name: Upload report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sns-trend-report
+          path: data/report.html

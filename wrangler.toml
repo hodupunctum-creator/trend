@@ -1,0 +1,9 @@
+name = "sns-trend-report-trigger"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# 배포 후 아래 명령으로 secret들을 등록하세요:
+#   wrangler secret put TRIGGER_SECRET
+#   wrangler secret put GITHUB_TOKEN
+#   wrangler secret put GITHUB_OWNER
+#   wrangler secret put GITHUB_REPO

@@ -1,0 +1,37 @@
+name: Weekly Notify
+
+on:
+  schedule:
+    # 매주 월요일 00:00 UTC = 한국시간 09:00
+    - cron: "0 0 * * 1"
+  workflow_dispatch: {}  # 수동으로도 즉시 테스트 가능하도록
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install sendgrid
+
+      - name: Generate signed trigger token
+        id: token
+        env:
+          TRIGGER_SECRET: ${{ secrets.TRIGGER_SECRET }}
+        run: |
+          TOKEN=$(python scripts/generate_trigger_token.py --ttl-hours 24)
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Send notify email
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          TRIGGER_BASE_URL: ${{ secrets.TRIGGER_BASE_URL }}
+          TRIGGER_TOKEN: ${{ steps.token.outputs.token }}
+        run: python scripts/send_email.py --mode notify

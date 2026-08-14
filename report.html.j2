@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>공공기관 SNS 트렌드 리포트 - {{ report_date }}</title>
+<style>
+  body { font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; max-width: 720px; margin: 0 auto; padding: 24px; color: #222; }
+  h1 { font-size: 22px; border-bottom: 3px solid #222; padding-bottom: 12px; }
+  h2 { font-size: 18px; margin-top: 36px; background: #f2f2f2; padding: 8px 12px; }
+  h3 { font-size: 15px; margin-top: 20px; color: #555; }
+  .item { border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; margin: 10px 0; }
+  .item a { color: #1a5fb4; text-decoration: none; font-weight: bold; }
+  .meta { font-size: 13px; color: #777; margin-top: 4px; }
+  .error { color: #b00; font-size: 13px; }
+  .note { color: #888; font-size: 12px; font-style: italic; }
+  .footer { margin-top: 40px; font-size: 12px; color: #999; }
+</style>
+</head>
+<body>
+  <h1>📊 공공기관 SNS 트렌드 리포트</h1>
+  <p class="meta">발행일: {{ report_date }} · 대상 기관 {{ organizations|length }}곳</p>
+
+  {% for org in organizations %}
+  <h2>{{ org.name }}</h2>
+
+  <h3>▶ YouTube 인기 영상</h3>
+  {% if org.youtube.status == "failed" %}
+    <p class="error">수집 실패: {{ org.youtube.error }}</p>
+  {% elif org.youtube.top_videos %}
+    {% for v in org.youtube.top_videos %}
+    <div class="item">
+      <a href="{{ v.url }}" target="_blank">{{ v.title }}</a>
+      <div class="meta">조회수 {{ "{:,}".format(v.view_count) }} · 좋아요 {{ "{:,}".format(v.like_count) }} · 댓글 {{ "{:,}".format(v.comment_count) }} · 게시일 {{ v.published_at[:10] }}</div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p class="note">수집된 영상이 없습니다.</p>
+  {% endif %}
+
+  <h3>▶ Instagram 최신 게시물</h3>
+  {% if org.instagram.status == "failed" %}
+    <p class="error">수집 실패: {{ org.instagram.error }} (비로그인 접근 제한으로 추정)</p>
+  {% elif org.instagram.top_posts %}
+    <p class="note">{{ org.instagram.ranking_note }}</p>
+    {% for p in org.instagram.top_posts %}
+    <div class="item">
+      <a href="{{ p.url }}" target="_blank">게시물 보기</a>
+      {% if p.caption_snippet %}<div class="meta">{{ p.caption_snippet }}</div>{% endif %}
+      {% if p.like_count is not none %}<div class="meta">좋아요 {{ "{:,}".format(p.like_count) }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+    <p class="note">수집된 게시물이 없습니다.</p>
+  {% endif %}
+  {% endfor %}
+
+  <div class="footer">
+    본 리포트는 자동화 파이프라인으로 생성되었습니다. Instagram 데이터는 비로그인 접근 제약으로 인해 일부 정보(좋아요 수 등)가 누락될 수 있습니다.
+  </div>
+</body>
+</html>
